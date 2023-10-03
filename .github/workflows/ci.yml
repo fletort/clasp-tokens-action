@@ -53,8 +53,17 @@ jobs:
         id: test-action
         uses: ./
         with:
-          milliseconds: 1000
+          client-id: global-client-id
+          client-secret: global-client-secret
+          refresh-token: global-refresh-token
+          gcp-client-id: gcp-client-id
+          gcp-client-secret: gcp-client-secret
+          gcp-refresh-token: gcp-refresh-token
 
-      - name: Print Output
-        id: output
-        run: echo "${{ steps.test-action.outputs.time }}"
+      - name: Print Global Authentication File
+        id: output-global
+        run: cat ./.clasprc.json
+
+      - name: Print Local Authentication File
+        id: output-local
+        run: cat ~/.clasprc.json

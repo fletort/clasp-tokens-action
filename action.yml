@@ -1,18 +1,23 @@
-name: 'The name of your action here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Clasp tokens'
+description: 'This sets up clasp global and local tokens for pushing, deploying and running project to Google App Script'
+author: 'fletort@gmail.com'
 
-# Define your inputs here.
 inputs:
-  milliseconds:
-    description: 'Your input description here'
+  client-id:
+    description: 'Your global AppScript OAuth2 ClientID (located in global .clasprc.json file)'
     required: true
-    default: '1000'
-
-# Define your outputs here.
-outputs:
-  time:
-    description: 'Your output description here'
+  client-secret:
+    description: 'Your global AppScript OAuth2 Client Secret (located in global .clasprc.json file)'
+    required: true
+  refresh-token:
+    description: 'Your global AppScript OAuth2 Refresh Token (located in global .clasprc.json file)'
+    required: true
+  gcp-client-id:
+    description: 'Your GCP project OAuth2 ClientID (located in local .clasprc.json file)'
+  gcp-client-secret:
+    description: 'Your GCP project OAuth2 Client Secret (located in local .clasprc.json file)'
+  gcp-refresh-token:
+    description: 'Your GCP project OAuth2 Refresh Token (located in local .clasprc.json file)'
 
 runs:
   using: node20
