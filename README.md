@@ -1,199 +1,172 @@
-# Create a JavaScript Action
+# Clasp Tokens Action
 
-[![GitHub Super-Linter](https://github.com/actions/javascript-action/actions/workflows/linter.yml/badge.svg)](https://github.com/super-linter/super-linter)
-![CI](https://github.com/actions/javascript-action/actions/workflows/ci.yml/badge.svg)
+This action allows you to create global and local `.clasprc.json` files.
 
-Use this template to bootstrap the creation of a JavaScript action. :rocket:
+It give a "way" to use clasp (and so Google Apps Script API) from CI/CD
+context. This workaround is needed as Google Apps Script API doesn't work with
+service accounts (See below)
 
-This template includes compilation support, tests, a validation workflow,
-publishing, and versioning guidance.
+Global `.clasprc.json` file (in the home directory) is needed to push projects
+in Google App Script.
 
-If you are new, there's also a simpler introduction in the
-[Hello world JavaScript action repository](https://github.com/actions/hello-world-javascript-action).
+Local `.clasprc.json` file (in the project directory) is needed to run the
+current project from the command line.
+In this context, the Google App Script needs to be linked to a custom Google
+Cloud Project and local `.clasprc.json`is used to authenticate to this
+**G**oogle **C**loud **P**lateform project.
+This link explains what is required to can _run_ your script remotely:
+<https://developers.google.com/apps-script/api/how-tos/execute>.
 
-## Create Your Own Action
+## Inputs
 
-To create your own action, you can use this repository as a template! Just
-follow the below instructions:
+### Inputs dedicated to global App Script authentication
 
-1. Click the **Use this template** button at the top of the repository
-1. Select **Create a new repository**
-1. Select an owner and name for your new repository
-1. Click **Create repository**
-1. Clone your new repository
+#### `client-id`
 
-## Initial Setup
+**Required** The ClientID of the project.
 
-After you've cloned the repository to your local machine or codespace, you'll
-need to perform some initial setup steps before you can develop your action.
+#### `client-secret`
 
-> [!NOTE]
->
-> You'll need to have a reasonably modern version of
-> [Node.js](https://nodejs.org) handy. If you are using a version manager like
-> [`nodenv`](https://github.com/nodenv/nodenv) or
-> [`nvm`](https://github.com/nvm-sh/nvm), you can run `nodenv install` in the
-> root of your repository to install the version specified in
-> [`package.json`](./package.json). Otherwise, 20.x or later should work!
+**Required** The ClientSecret of the project.
 
-1. :hammer_and_wrench: Install the dependencies
+#### `refresh-token`
 
-   ```bash
-   npm install
-   ```
+**Required** RefreshToken of the user.
 
-1. :building_construction: Package the JavaScript for distribution
+### Inputs dedicated to local GCP authentication
 
-   ```bash
-   npm run bundle
-   ```
+#### `gcp-client-id`
 
-1. :white_check_mark: Run the tests
+The ClientID of the Google Cloud Project.
 
-   ```bash
-   $ npm test
+#### `gcp-client-secret`
 
-   PASS  ./index.test.js
-     ✓ throws invalid number (3ms)
-     ✓ wait 500 ms (504ms)
-     ✓ test runs (95ms)
+The ClientSecret of the Google Cloud Project.
 
-   ...
-   ```
+#### `gcp-refresh-token`
 
-## Update the Action Metadata
+RefreshToken of the GCP user.
 
-The [`action.yml`](action.yml) file defines metadata about your action, such as
-input(s) and output(s). For details about this file, see
-[Metadata syntax for GitHub Actions](https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions).
+## How to get the value of the inputs
 
-When you copy this repository, update `action.yml` with the name, description,
-inputs, and outputs for your action.
+### Global App Script authentication
 
-## Update the Action Code
+You need to install [clasp](https://github.com/google/clasp) to get the values.
 
-The [`src/`](./src/) directory is the heart of your action! This contains the
-source code that will be run when your action is invoked. You can replace the
-contents of this directory with your own code.
+- Install clasp
 
-There are a few things to keep in mind when writing your action code:
+```bash
+npm install -g @google/clasp
+```
 
-- Most GitHub Actions toolkit and CI/CD operations are processed asynchronously.
-  In `main.js`, you will see that the action is run in an `async` function.
+- Login to clasp
 
-  ```javascript
-  const core = require('@actions/core')
-  //...
+```bash
+clasp login
+```
 
-  async function run() {
-    try {
-      //...
-    } catch (error) {
-      core.setFailed(error.message)
-    }
+- Get values from generated file in your home directory
+
+```bash
+cat ~/.clasprc.json
+```
+
+- Put theses values in GitHub secret. This can be done at a high level
+([organization/account][github-organization-secret]) or
+[environment][github-env-secret] as this credential is unique
+for all the app script project of your account.
+
+### Local GCP authentication
+
+- You need to follow this Setup [Instructions][clasp-run-instructions] that
+explain how to link your project to a custom Google Cloud Project to get
+your GCP credential. This step must be done from a valid AppScript project
+directory. This setup is the quick-howto version of the given previous
+link: <https://developers.google.com/apps-script/api/how-tos/execute>.
+
+- Get values from generated file on the project (local) directory
+
+```bash
+cat ./.clasprc.json
+```
+
+- Put theses values in GitHub secret. Usually this will be done at
+[repository level][github-repo-secret] as this credential is dedicated to the
+targeted GCP project.
+In the case that your GCP project is linked to all your AppScript project
+(use only for run from ci/cd context for exemple), then these secrets could
+also be defined at a higher level.
+
+## Example usage
+
+Define only the global authentication for clasp :
+
+```bash
+uses: fletort/clasp-tokens-action@v1.0.0
+with:
+  client-id: ${{ secrets.GASP_CLIENT_ID }}
+  client-secret: ${{ secrets.GASP_CLIENT_SECRET }}
+  refresh-token: ${{ secrets.GASP_REFRESH_TOKEN }}
+```
+
+Define global and local authentication for clasp/GCP:
+
+```bash
+uses: fletort/clasp-tokens-action@v1.0.0
+with:
+  client-id: ${{ secrets.GASP_CLIENT_ID }}
+  client-secret: ${{ secrets.GASP_CLIENT_SECRET }}
+  refresh-token: ${{ secrets.GASP_REFRESH_TOKEN }}
+  gcp-client-id: ${{ secrets.GASP_GCP_CLIENT_ID }}
+  gcp-client-secret: ${{ secrets.GASP_GCP_CLIENT_SECRET }}
+  gcp-refresh-token: ${{ secrets.GASP_GCP_REFRESH_TOKEN }}
+```
+
+You can specify the clasp command in your npm scripts. For example
+
+package.json
+
+```bash
+{
+  "name": "my-project",
+  "version": "0.0.1",
+  "script": {
+    "push-to-app": "clasp push",
+    "run-in-gasp": "clasp run"
   }
-  ```
-
-  For more information about the GitHub Actions toolkit, see the
-  [documentation](https://github.com/actions/toolkit/blob/master/README.md).
-
-So, what are you waiting for? Go ahead and start customizing your action!
-
-1. Create a new branch
-
-   ```bash
-   git checkout -b releases/v1
-   ```
-
-1. Replace the contents of `src/` with your action code
-1. Add tests to `__tests__/` for your source code
-1. Format, test, and build the action
-
-   ```bash
-   npm run all
-   ```
-
-   > [!WARNING]
-   >
-   > This step is important! It will run [`ncc`](https://github.com/vercel/ncc)
-   > to build the final JavaScript action code with all dependencies included.
-   > If you do not run this step, your action will not work correctly when it is
-   > used in a workflow. This step also includes the `--license` option for
-   > `ncc`, which will create a license file for all of the production node
-   > modules used in your project.
-
-1. Commit your changes
-
-   ```bash
-   git add .
-   git commit -m "My first action is ready!"
-   ```
-
-1. Push them to your repository
-
-   ```bash
-   git push -u origin releases/v1
-   ```
-
-1. Create a pull request and get feedback on your action
-1. Merge the pull request into the `main` branch
-
-Your action is now published! :rocket:
-
-For information about versioning your action, see
-[Versioning](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md)
-in the GitHub Actions toolkit.
-
-## Validate the Action
-
-You can now validate the action by referencing it in a workflow file. For
-example, [`ci.yml`](./.github/workflows/ci.yml) demonstrates how to reference an
-action in the same repository.
-
-```yaml
-steps:
-  - name: Checkout
-    id: checkout
-    uses: actions/checkout@v3
-
-  - name: Test Local Action
-    id: test-action
-    uses: ./
-    with:
-      milliseconds: 1000
-
-  - name: Print Output
-    id: output
-    run: echo "${{ steps.test-action.outputs.time }}"
+}
 ```
 
-For example workflow runs, check out the
-[Actions tab](https://github.com/actions/javascript-action/actions)! :rocket:
+## The correct way: GCP Service Accounts
 
-## Usage
+The whole system described here copying the credentials out of your
+two `.clasprc.json` files.
 
-After testing, you can create version tag(s) that developers can use to
-reference different stable versions of your action. For more information, see
-[Versioning](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md)
-in the GitHub Actions toolkit.
+The "correct" way to setup a server to server connection like is through
+a GCP service account. It is possible to login clasp using a key file
+for a service account. However, the [Apps Scripts API][apps-script-sapi] does
+not work with service accounts.
 
-To include the action in a workflow in another repository, you can use the
-`uses` syntax with the `@` symbol to reference a specific branch, tag, or commit
-hash.
+- [Execution API - cant use service account](https://issuetracker.google.com/issues/36763096)
+- [Can the Google Apps Script Execution API be called by a service account?](https://stackoverflow.com/questions/33306299/can-the-google-apps-script-execution-api-be-called-by-a-service-account)
+  
+### Related Issues
 
-```yaml
-steps:
-  - name: Checkout
-    id: checkout
-    uses: actions/checkout@v4
+- [Provide instructions for deploying via CI #707](https://github.com/google/clasp/issues/707)
+- [Handle rc files preferring local over global to make clasp more CI friendly #486](https://github.com/google/clasp/pull/486)
+- [Integration with CI pipeline and Jenkins #524](https://github.com/google/clasp/issues/524)
+- [How to use a service account for CI deployments #225](https://github.com/google/clasp/issues/225)
 
-  - name: Run my Action
-    id: run-action
-    uses: actions/javascript-action@v1 # Commit with the `v1` tag
-    with:
-      milliseconds: 1000
+## Credits
 
-  - name: Print Output
-    id: output
-    run: echo "${{ steps.test-action.outputs.time }}"
-```
+- This action is mainly inspired from [clasp-token-action] with multiples modifications/enhancements
+(add local pipeline, add local authentication, ...)
+- Thanks also to @ericanastas  for its research around its project [deploy-google-app-script-action]
+
+[github-organization-secret]: https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-an-organization
+[github-env-secret]: https://docs.github.com/en/actions/security-guides/
+[github-repo-secret]: https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository
+[clasp-run-instructions]: https://github.com/google/clasp/blob/master/docs/run.md#setup-instructions
+[apps-script-sapi]: https://developers.google.com/apps-script/api/concepts
+[clasp-token-action]: https://github.com/namaggarwal/clasp-token-action
+[deploy-google-app-script-action]: https://github.com/ericanastas/deploy-google-app-script-action

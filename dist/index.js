@@ -2722,11 +2722,62 @@ exports["default"] = _default;
 
 /***/ }),
 
+/***/ 653:
+/***/ ((module) => {
+
+const defaultGlobalScope =
+  'https://www.googleapis.com/auth/script.projects https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/logging.read https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/script.webapp.deploy https://www.googleapis.com/auth/script.deployments https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/service.management'
+const defaultLocalScope = 'https://www.googleapis.com/auth/script.webapp.deploy'
+
+/**
+ * Create .clasprc.json file content
+ * @param {string} clientID The oauth2 client Id
+ * @param {string} arg_clientSecret The oauth2 client Secret
+ * @param {string} refreshToken The refreshToken
+ * @param {string} isLocalCred Indicates if credential are global (false) or local (true). False by default.
+ * @param {string} arg_scope The token scope, set to default scope of local file by default.
+ * @returns {String} .clasprc.json file content
+ */
+function getClasprcJSON(
+  clientID,
+  arg_clientSecret,
+  refreshToken,
+  isLocalCred = false,
+  arg_scope = null
+) {
+  if (arg_scope == null) {
+    arg_scope = isLocalCred ? defaultLocalScope : defaultGlobalScope
+  }
+
+  return {
+    token: {
+      access_token: '',
+      scope: arg_scope,
+      token_type: 'Bearer',
+      expiry_date: 0,
+      refresh_token: refreshToken
+    },
+    oauth2ClientSettings: {
+      clientId: clientID,
+      clientSecret: arg_clientSecret,
+      redirectUri: 'http://localhost'
+    },
+    isLocalCreds: isLocalCred
+  }
+}
+
+module.exports = { getClasprcJSON, defaultGlobalScope, defaultLocalScope }
+
+
+/***/ }),
+
 /***/ 713:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const core = __nccwpck_require__(186)
-const { wait } = __nccwpck_require__(312)
+const fs = __nccwpck_require__(147)
+const { getClasprcJSON } = __nccwpck_require__(653)
+const homeDir = (__nccwpck_require__(37).homedir)()
 
 /**
  * The main function for the action.
@@ -2734,18 +2785,47 @@ const { wait } = __nccwpck_require__(312)
  */
 async function run() {
   try {
-    const ms = core.getInput('milliseconds', { required: true })
+    const clientId = core.getInput('client-id', { required: true })
+    const clientSecret = core.getInput('client-secret', { required: true })
+    const refreshToken = core.getInput('refresh-token', { required: true })
+    const gcpClientId = core.getInput('gcp-client-id')
+    const gcpClientSecret = core.getInput('gcp-client-secret')
+    const gcpRefreshToken = core.getInput('gcp-refresh-token')
 
-    // Debug logs are only output if the `ACTIONS_STEP_DEBUG` secret is true
-    core.debug(`Waiting ${ms} milliseconds ...`)
+    const claspGlobalJSON = getClasprcJSON(clientId, clientSecret, refreshToken)
+    await fs.promises.writeFile(
+      (__nccwpck_require__(17).join)(homeDir, '.clasprc.json'),
+      JSON.stringify(claspGlobalJSON)
+    )
 
-    // Log the current timestamp, wait, then log the new timestamp
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
+    if (
+      gcpClientId !== '' &&
+      gcpClientSecret !== '' &&
+      gcpRefreshToken !== ''
+    ) {
+      core.debug(`Local file generation requested`)
+      const claspLocalJSON = getClasprcJSON(
+        gcpClientId,
+        gcpClientSecret,
+        gcpRefreshToken,
+        true
+      )
+      await fs.promises.writeFile(
+        '.clasprc.json',
+        JSON.stringify(claspLocalJSON)
+      )
+    }
 
-    // Set outputs for other workflow steps to use
-    core.setOutput('time', new Date().toTimeString())
+    // // Debug logs are only output if the `ACTIONS_STEP_DEBUG` secret is true
+    // core.debug(`Waiting ${ms} milliseconds ...`)
+
+    // // Log the current timestamp, wait, then log the new timestamp
+    // core.debug(new Date().toTimeString())
+    // await wait(parseInt(ms, 10))
+    // core.debug(new Date().toTimeString())
+
+    // // Set outputs for other workflow steps to use
+    // core.setOutput('time', new Date().toTimeString())
   } catch (error) {
     // Fail the workflow run if an error occurs
     core.setFailed(error.message)
@@ -2755,30 +2835,6 @@ async function run() {
 module.exports = {
   run
 }
-
-
-/***/ }),
-
-/***/ 312:
-/***/ ((module) => {
-
-/**
- * Wait for a number of milliseconds.
- *
- * @param {number} milliseconds The number of milliseconds to wait.
- * @returns {Promise<string>} Resolves with 'done!' after the wait is over.
- */
-async function wait(milliseconds) {
-  return new Promise(resolve => {
-    if (isNaN(milliseconds)) {
-      throw new Error('milliseconds not a number')
-    }
-
-    setTimeout(() => resolve('done!'), milliseconds)
-  })
-}
-
-module.exports = { wait }
 
 
 /***/ }),
