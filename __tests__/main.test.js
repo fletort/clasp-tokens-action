@@ -150,7 +150,8 @@ describe('action', () => {
     expect(getClasprcJSON).toHaveBeenCalledWith(
       'testIdLocal',
       'testSecretLocal',
-      'testTokenLocal'
+      'testTokenLocal',
+      true
     )
 
     // Test global created file

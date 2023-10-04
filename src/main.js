@@ -31,7 +31,8 @@ async function run() {
       const claspLocalJSON = getClasprcJSON(
         gcpClientId,
         gcpClientSecret,
-        gcpRefreshToken
+        gcpRefreshToken,
+        true
       )
       await fs.promises.writeFile(
         '.clasprc.json',
